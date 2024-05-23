@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Health & Nutrition Tracker</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+
+        .toast-success {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+
+.toast-success .toast-header {
+    background-color: #c3e6cb;
+    color: #155724;
+}
+
+.toast-error {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.toast-error .toast-header {
+    background-color: #f5c6cb;
+    color: #721c24;
+}
+        .container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #007bff;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        .btn-submit {
+            background-color: #007bff;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.2em;
+        }
+
+        .btn-submit:hover {
+            background-color: #0056b3;
+        }
+
+        .nutrition-info,
+        .nutrition-tips {
+            margin-top: 30px;
+        }
+
+        .nutrition-label {
+            font-weight: bold;
+        }
+
+        .search-results {
+            margin-top: 20px;
+        }
+
+        .search-result-item {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .loading-spinner {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            min-width: 200px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Health & Nutrition Tracker</h1>
+        <form id="searchForm">
+            <div class="form-group">
+                <label for="searchQuery">Search Food:</label>
+                <input type="text" class="form-control" id="searchQuery" placeholder="Enter food name">
+            </div>
+            <button type="submit" class="btn btn-submit">Search</button>
+        </form>
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="foodSelect" style="margin-top: 1%;">Select Food:</label>
+            <select class="form-control" id="foodSelect">
+                <option value="">-- Select a food item --</option>
+            </select>
+        </div>
+        <form id="nutritionForm">
+            <div class="form-group">
+                <label for="foodName">Food Name:</label>
+                <input type="text" class="form-control" id="foodName" readonly>
+            </div>
+            <div class="form-group">
+                <label for="brandName">Brand Name:</label>
+                <input type="text" class="form-control" id="brandName" readonly>
+            </div>
+            <div class="form-group">
+                <label for="ingredients">Ingredients:</label>
+                <textarea style="height: 150px;" class="form-control" id="ingredients" readonly></textarea>
+            </div>
+            <div class="form-group">
+                <label for="calories">Calories (kcal):</label>
+                <input type="number" class="form-control" id="calories" readonly>
+            </div>
+            <div class="form-group">
+                <label for="protein">Protein (g):</label>
+                <input type="number" class="form-control" id="protein" readonly>
+            </div>
+            <div class="form-group">
+                <label for="carbs">Carbohydrates (g):</label>
+                <input type="number" class="form-control" id="carbs" readonly>
+            </div>
+            <div class="form-group">
+                <label for="fat">Fat (g):</label>
+                <input type="number" class="form-control" id="fat" readonly>
+            </div>
+            <button type="submit" class="btn btn-submit">Add to Nutrition Log</button>
+        </form>
+        <div class="search-results" id="searchResults"></div>
+    </div>
+
+    <!-- Toast notifications -->
+    <div class="toast toast-success" id="successToast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="5000">
+        <div class="toast-header">
+            <strong class="mr-auto">Success</strong>
+            <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="toast-body">
+            Nutrition entry added successfully!
+        </div>
+    </div>
+    
+    <div class="toast toast-error" id="errorToast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="5000">
+        <div class="toast-header">
+            <strong class="mr-auto">Error</strong>
+            <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="toast-body">
+            Error adding nutrition entry. Please try again.
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("searchForm").addEventListener("submit", function (event) {
+            event.preventDefault();
+            var query = document.getElementById("searchQuery").value;
+            var loadingSpinner = document.getElementById("loadingSpinner");
+            var foodSelect = document.getElementById("foodSelect");
+            var resultsDiv = document.getElementById("searchResults");
+
+            loadingSpinner.style.display = 'block';
+            resultsDiv.innerHTML = ''; // Clear previous results
+            foodSelect.innerHTML = '<option value="">-- Select a food item --</option>'; // Clear previous options
+
+            fetch(`/search-food?query=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    loadingSpinner.style.display = 'none'; // Hide the loading spinner
+                    if (data.foods) {
+                        data.foods.forEach(food => {
+                            var option = document.createElement("option");
+                            option.value = JSON.stringify(food);
+                            option.textContent = `${food.description} - ${food.brandName || "N/A"}`;
+                            foodSelect.appendChild(option);
+                        });
+                    } else {
+                        foodSelect.innerHTML = "<option value=''>No results found.</option>";
+                    }
+                })
+                .catch(error => {
+                    console.error("Error fetching data:", error);
+                    resultsDiv.innerHTML = "<p>Error fetching data. Please try again later.</p>";
+                    loadingSpinner.style.display = 'none'; // Hide the loading spinner
+                });
+        });
+
+        document.getElementById("foodSelect").addEventListener("change", function (event) {
+            var food = JSON.parse(event.target.value);
+            var nutrients = food.foodNutrients;
+            var calories = nutrients.find(n => n.nutrientName === "Energy")?.value || 0;
+            var protein = nutrients.find(n => n.nutrientName === "Protein")?.value || 0;
+            var carbs = nutrients.find(n => n.nutrientName === "Carbohydrate, by difference")?.value || 0;
+            var fat = nutrients.find(n => n.nutrientName === "Total lipid (fat)")?.value || 0;
+
+            document.getElementById("foodName").value = food.description;
+            document.getElementById("brandName").value = food.brandName || "N/A";
+            document.getElementById("ingredients").value = food.ingredients || "N/A";
+            document.getElementById("calories").value = calories;
+            document.getElementById("protein").value = protein;
+            document.getElementById("carbs").value = carbs;
+            document.getElementById("fat").value = fat;
+        });
+
+        document.getElementById("nutritionForm").addEventListener("submit", function (event) {
+            event.preventDefault();
+            var foodName = document.getElementById("foodName").value;
+            var brandName = document.getElementById("brandName").value;
+            var ingredients = document.getElementById("ingredients").value;
+            var calories = document.getElementById("calories").value;
+            var protein = document.getElementById("protein").value;
+            var carbs = document.getElementById("carbs").value;
+            var fat = document.getElementById("fat").value;
+
+            fetch("/add-nutrition", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: new URLSearchParams({
+                    food_name: foodName,
+                    brand_name: brandName,
+                    ingredients: ingredients,
+                    calories: calories,
+                    protein: protein,
+                    carbohydrates: carbs,
+                    fat: fat
+                })
+            }).then(response => {
+                if (response.status === 200) {
+                    $('#successToast').toast('show');
+                    clearNutritionForm();
+                    setTimeout(function () {
+
+                    }, 5000); // Show toast for 5 seconds
+                } else {
+                    $('#errorToast').toast('show');
+                }
+            }).catch(error => {
+                console.error("Error adding nutrition entry:", error);
+                $('#errorToast').toast('show');
+            });
+        });
+
+        function clearNutritionForm() {
+            document.getElementById("foodSelect").value = "";
+            document.getElementById("searchQuery").value = "";
+            document.getElementById("foodName").value = "";
+            document.getElementById("brandName").value = "";
+            document.getElementById("ingredients").value = "";
+            document.getElementById("calories").value = "";
+            document.getElementById("protein").value = "";
+            document.getElementById("carbs").value = "";
+            document.getElementById("fat").value = "";
+        }
+    </script>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+
+</html>

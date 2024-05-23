@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Nutrition Analytics</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #007bff;
+        }
+
+        .chart-container {
+            margin-top: 20px;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            min-width: 200px;
+        }
+
+        .toast-success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        .toast-success .toast-header {
+            background-color: #c3e6cb;
+            color: #155724;
+        }
+
+        .toast-error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
+        .toast-error .toast-header {
+            background-color: #f5c6cb;
+            color: #721c24;
+        }
+
+        .chart-small {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Nutrition Analytics</h1>
+        <div class="chart-container">
+            <canvas id="caloriesChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="macronutrientsChart"></canvas>
+        </div>
+        <div class="chart-container chart-small">
+            <canvas id="calorieContributionChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Toast notifications -->
+    <div class="toast toast-success" id="successToast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="5000">
+        <div class="toast-header">
+            <strong class="mr-auto">Success</strong>
+            <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="toast-body">
+            Nutrition data loaded successfully!
+        </div>
+    </div>
+
+    <div class="toast toast-error" id="errorToast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="5000">
+        <div class="toast-header">
+            <strong class="mr-auto">Error</strong>
+            <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="toast-body">
+            Error loading nutrition data. Please try again.
+        </div>
+    </div>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            fetch("/nutrition-data")
+                .then(response => response.json())
+                .then(data => {
+                    $('#successToast').toast('show');
+                    renderCharts(data);
+                })
+                .catch(error => {
+                    console.error("Error loading data:", error);
+                    $('#errorToast').toast('show');
+                });
+
+            function renderCharts(data) {
+                const labels = data.map(item => new Date(item.consumed_at).toLocaleDateString());
+                const foodNames = data.map(item => item.food_name);
+                const calories = data.map(item => item.calories);
+                const protein = data.map(item => item.protein);
+                const carbohydrates = data.map(item => item.carbohydrates);
+                const fat = data.map(item => item.fat);
+
+                const ctxCalories = document.getElementById('caloriesChart').getContext('2d');
+                new Chart(ctxCalories, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Calories',
+                            data: calories,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            fill: true,
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Date'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Calories'
+                                }
+                            }
+                        }
+                    }
+                });
+
+                const ctxMacronutrients = document.getElementById('macronutrientsChart').getContext('2d');
+                new Chart(ctxMacronutrients, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Protein',
+                                data: protein,
+                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Carbohydrates',
+                                data: carbohydrates,
+                                backgroundColor: 'rgba(255, 206, 86, 0.2)',
+                                borderColor: 'rgba(255, 206, 86, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Fat',
+                                data: fat,
+                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                borderColor: 'rgba(255, 99, 132, 1)',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Date'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Grams'
+                                }
+                            }
+                        }
+                    }
+                });
+
+                const totalCalories = data.reduce((sum, item) => sum + item.calories, 0);
+                const calorieContribution = data.reduce((acc, item) => {
+                    if (acc[item.food_name]) {
+                        acc[item.food_name] += item.calories;
+                    } else {
+                        acc[item.food_name] = item.calories;
+                    }
+                    return acc;
+                }, {});
+
+                const ctxCalorieContribution = document.getElementById('calorieContributionChart').getContext('2d');
+                new Chart(ctxCalorieContribution, {
+                    type: 'pie',
+                    data: {
+                        labels: Object.keys(calorieContribution),
+                        datasets: [{
+                            data: Object.values(calorieContribution),
+                            backgroundColor: Object.keys(calorieContribution).map(() => getRandomColor())
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function (tooltipItem) {
+                                        const foodName = tooltipItem.label;
+                                        const calories = calorieContribution[foodName];
+                                        const percentage = ((calories / totalCalories) * 100).toFixed(2);
+                                        return `${foodName}: ${calories} kcal (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function getRandomColor() {
+                const letters = '0123456789ABCDEF';
+                let color = '#';
+                for (let i = 0; i < 6; i++) {
+                    color += letters[Math.floor(Math.random() * 16)];
+                }
+                return color;
+            }
+        });
+    </script>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+
+</html>

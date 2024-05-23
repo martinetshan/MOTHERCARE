@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>User Nutrition Analytics</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #007bff;
+        }
+
+        .chart-container {
+            margin-top: 20px;
+        }
+
+        .chart-row {
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .chart-title {
+            text-align: center;
+            font-size: 1.2em;
+            margin-top: 20px;
+            color: #333;
+            display: none;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            min-width: 200px;
+        }
+
+        .toast-success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+
+        .toast-success .toast-header {
+            background-color: #c3e6cb;
+            color: #155724;
+        }
+
+        .toast-error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+
+        .toast-error .toast-header {
+            background-color: #f5c6cb;
+            color: #721c24;
+        }
+
+        .chart-small {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>User Nutrition Analytics</h1>
+        <div class="form-group">
+            <label for="userSelect">Select User:</label>
+            <select class="form-control" id="userSelect">
+                <option value="">-- Select a user --</option>
+            </select>
+        </div>
+        <div class="chart-container">
+            <div class="chart-title" id="caloriesTitle">Calories Over Time</div>
+            <canvas id="caloriesChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <div class="chart-title" id="macronutrientsTitle">Macronutrient Intake Over Time</div>
+            <canvas id="macronutrientsChart"></canvas>
+        </div>
+        <div class="chart-row">
+            <div class="chart-container chart-small">
+                <div class="chart-title" id="calorieContributionTitle">Calorie Contribution by Food</div>
+                <canvas id="calorieContributionChart"></canvas>
+            </div>
+            <div class="chart-container chart-small">
+                <div class="chart-title" id="averageIntakeTitle">Average of all users nutrient intake</div>
+                <canvas id="averageIntakeChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast notifications -->
+    <div class="toast toast-success" id="successToast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="5000">
+        <div class="toast-header">
+            <strong class="mr-auto">Success</strong>
+            <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="toast-body">
+            Nutrition data loaded successfully!
+        </div>
+    </div>
+
+    <div class="toast toast-error" id="errorToast" role="alert" aria-live="assertive" aria-atomic="true" data-delay="5000">
+        <div class="toast-header">
+            <strong class="mr-auto">Error</strong>
+            <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="toast-body">
+            Error loading nutrition data. Please try again.
+        </div>
+    </div>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        let caloriesChart, macronutrientsChart, calorieContributionChart, averageIntakeChart;
+
+        document.addEventListener("DOMContentLoaded", function () {
+            fetch("/get-users")
+                .then(response => response.json())
+                .then(data => {
+                    const userSelect = document.getElementById("userSelect");
+                    data.forEach(user => {
+                        const option = document.createElement("option");
+                        option.value = user.id;
+                        option.textContent = `${user.firstname} ${user.lastname}`;
+                        userSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error("Error loading users:", error);
+                });
+
+            document.getElementById("userSelect").addEventListener("change", function (event) {
+                const userId = event.target.value;
+                if (userId) {
+                    fetch(`/user-nutrition-data?user_id=${userId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            $('#successToast').toast('show');
+                            renderCharts(data);
+                            fetch("/average-intake")
+                                .then(response => response.json())
+                                .then(data => {
+                                    renderAverageIntakeChart(data);
+                                })
+                                .catch(error => {
+                                    console.error("Error loading average data:", error);
+                                });
+                        })
+                        .catch(error => {
+                            console.error("Error loading data:", error);
+                            $('#errorToast').toast('show');
+                        });
+                }
+            });
+
+            function renderCharts(data) {
+                document.getElementById('caloriesTitle').style.display = 'block';
+                document.getElementById('macronutrientsTitle').style.display = 'block';
+                document.getElementById('calorieContributionTitle').style.display = 'block';
+
+                const labels = data.map(item => new Date(item.consumed_at).toLocaleDateString());
+                const calories = data.map(item => item.calories);
+                const protein = data.map(item => item.protein);
+                const carbohydrates = data.map(item => item.carbohydrates);
+                const fat = data.map(item => item.fat);
+
+                if (caloriesChart) {
+                    caloriesChart.destroy();
+                }
+                const ctxCalories = document.getElementById('caloriesChart').getContext('2d');
+                caloriesChart = new Chart(ctxCalories, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Calories',
+                            data: calories,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            fill: true,
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Date'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Calories'
+                                }
+                            }
+                        }
+                    }
+                });
+
+                if (macronutrientsChart) {
+                    macronutrientsChart.destroy();
+                }
+                const ctxMacronutrients = document.getElementById('macronutrientsChart').getContext('2d');
+                macronutrientsChart = new Chart(ctxMacronutrients, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Protein',
+                                data: protein,
+                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Carbohydrates',
+                                data: carbohydrates,
+                                backgroundColor: 'rgba(255, 206, 86, 0.2)',
+                                borderColor: 'rgba(255, 206, 86, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Fat',
+                                data: fat,
+                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                borderColor: 'rgba(255, 99, 132, 1)',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Date'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Grams'
+                                }
+                            }
+                        }
+                    }
+                });
+
+                if (calorieContributionChart) {
+                    calorieContributionChart.destroy();
+                }
+                const calorieContribution = data.reduce((acc, item) => {
+                    if (acc[item.food_name]) {
+                        acc[item.food_name] += item.calories;
+                    } else {
+                        acc[item.food_name] = item.calories;
+                    }
+                    return acc;
+                }, {});
+
+                const ctxCalorieContribution = document.getElementById('calorieContributionChart').getContext('2d');
+                calorieContributionChart = new Chart(ctxCalorieContribution, {
+                    type: 'pie',
+                    data: {
+                        labels: Object.keys(calorieContribution),
+                        datasets: [{
+                            data: Object.values(calorieContribution),
+                            backgroundColor: Object.keys(calorieContribution).map(() => getRandomColor())
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function (tooltipItem) {
+                                        const foodName = tooltipItem.label;
+                                        const calories = calorieContribution[foodName];
+                                        const percentage = ((calories / data.reduce((sum, item) => sum + item.calories, 0)) * 100).toFixed(2);
+                                        return `${foodName}: ${calories} kcal (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function renderAverageIntakeChart(data) {
+                document.getElementById('averageIntakeTitle').style.display = 'block';
+                
+                if (averageIntakeChart) {
+                    averageIntakeChart.destroy();
+                }
+                const ctxAverageIntake = document.getElementById('averageIntakeChart').getContext('2d');
+                averageIntakeChart = new Chart(ctxAverageIntake, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Average Calories', 'Average Protein', 'Average Carbohydrates', 'Average Fat'],
+                        datasets: [{
+                            data: [data.avg_calories, data.avg_protein, data.avg_carbohydrates, data.avg_fat],
+                            backgroundColor: [getRandomColor(), getRandomColor(), getRandomColor(), getRandomColor()]
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function (tooltipItem) {
+                                        const label = tooltipItem.label;
+                                        const value = tooltipItem.raw;
+                                        return `${label}: ${value.toFixed(2)} ${label.includes('Calories') ? 'kcal' : 'g'}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function getRandomColor() {
+                const letters = '0123456789ABCDEF';
+                let color = '#';
+                for (let i = 0; i < 6; i++) {
+                    color += letters[Math.floor(Math.random() * 16)];
+                }
+                return color;
+            }
+        });
+    </script>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+
+</html>

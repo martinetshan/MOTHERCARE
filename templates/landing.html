@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Landing Page</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        /* Custom Styles */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .navbar .dropdown:hover .dropdown-menu {
+            display: block;
+        }
+        
+        .bg-image {
+            /* Full-page background image */
+            background-image: url('https://png.pngtree.com/thumb_back/fh260/background/20210426/pngtree-mothers-day-son-and-mom-background-image_673889.jpg'); /* Update this path as necessary */
+            background-size: cover;
+            background-position: center;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            filter: brightness(0.6);
+        }
+        
+        .dropdown-item {
+            background-color: black !important;
+        }
+
+        .content {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #ffffff;
+            text-align: center;
+        }
+
+        .main-heading {
+            font-size: 3em;
+            font-weight: bold;
+            margin-bottom: 1em;
+        }
+
+        .btn-explore {
+            background-color: #3498db;
+            border: none;
+            padding: 10px 20px;
+            color: #ffffff;
+            font-size: 1.2em;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 1em;
+        }
+
+        .btn-explore:hover {
+            background-color: #2980b9;
+        }
+
+        .navbar-custom {
+            background-color: transparent;
+            border: none;
+            position: absolute;
+            width: 100%;
+            top: 0;
+            z-index: 20;
+        }
+
+        .navbar-nav a {
+            color: #ffffff !important;
+            font-weight: bold;
+        }
+        
+        /* Decorations for dropdown items */
+        .dropdown-item:hover {
+            background-color: #333 !important;
+        }
+
+        /* Change color to yellow for navbar brand and dropdown text */
+        .navbar-brand,
+        .dropdown-text {
+            color: yellow;
+            font-size: 1.5em; /* Increase font size */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Background Image -->
+    <div class="bg-image"></div>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-custom" style="margin-top: 12px;">
+        <div class="container">
+            <a class="navbar-brand text-white" href="#">MOTHERCARE</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ml-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle dropdown-text" id="developmentDropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                            Health & Nutrition Tracker
+                        </a>
+                        <div class="dropdown-menu" style="padding: 0;" aria-labelledby="developmentDropdown">
+                            <a class="dropdown-item" href="/nutrition-tracker">Add Nutrition Log</a>
+                            <a class="dropdown-item" href="/nutrition-analytics">Nutrition Analytics</a>
+                            {% if user.is_admin %} 
+                            <a class="dropdown-item" href="/user-analytics">Overall Analytics</a>
+                            {% endif %}
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle dropdown-text" href="/child-developement" id="developmentDropdown" role="button" aria-haspopup="true" aria-expanded="false">
+                            Child Development Milestones
+                        </a>
+                        <div class="dropdown-menu" style="padding: 0;" aria-labelledby="developmentDropdown">
+                            <a class="dropdown-item" href="#">STAGE ONE</a>
+                            <a class="dropdown-item" href="#">STAGE TWO</a>
+                            <a class="dropdown-item" href="#">STAGE THREE</a>
+                            <a class="dropdown-item" href="#">FINGER FOODS</a>
+                            <a class="dropdown-item" href="#">BABY LED WEANING</a>
+                            <a class="dropdown-item" href="#">TODDLERS</a>
+                            <a class="dropdown-item" href="#">TODDLER DIET</a>
+                        </div>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link btn-explore" style="margin: 0;margin-left: 12px; font-size: 20px; background-color: coral;" href="/logout">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="content">
+        <h1 class="main-heading">A mother's love is the fuel that enables a normal human being to do the impossible.</h1>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            // Apply hover dropdown behavior to dropdowns
+            $('.navbar .dropdown').hover(function() {
+                $(this).find('.dropdown-menu').stop(true, true).delay(200).fadeIn(500);
+            }, function() {
+                $(this).find('.dropdown-menu').stop(true, true).delay(200).fadeOut(500);
+            });
+            
+            // Keep dropdown open when clicking on items inside the dropdown
+            $('.dropdown-menu').click(function(e) {
+                e.stopPropagation();
+            });
+        });
+    </script>
+        
+</body>
+</html>
